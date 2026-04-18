@@ -1,0 +1,21 @@
+# Web Framework and Server
+fastapi
+uvicorn
+pydantic
+pydantic[email]
+
+# Authentication and Security
+pyjwt
+passlib[bcrypt]
+python-multipart
+
+# AI and Machine Learning
+google-genai
+pillow
+
+# Document and Text Processing
+pyphen
+pymupdf
+
+# Environment and Utilities
+python-dotenv

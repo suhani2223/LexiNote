@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LexiNote - Identify Writing Errors</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        /* --- FONT & GLOBAL PRESERVATION --- */
+        @font-face {
+            font-family: 'OpenDyslexic';
+            src: local('OpenDyslexic'), url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/otf/OpenDyslexic-Regular.otf') format('opentype');
+            font-weight: normal; font-style: normal;
+        }
+
+        :root {
+            --navy: #000080;
+            --cream-bg: #fdfbf7;
+            --soft-blue: #e6eef9;
+            --text-main: #222;
+        }
+
+        body {
+            font-family: 'OpenDyslexic', Verdana, sans-serif;
+            background-color: var(--cream-bg);
+            color: var(--text-main);
+            line-height: 1.8;
+            letter-spacing: 0.12em;
+            overflow-x: hidden;
+            transition: background 0.3s;
+        }
+
+        /* --- BACKGROUND TEXTURE --- */
+        .grain {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 9999;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* --- READING RULER --- */
+        #readingRuler {
+            position: fixed;
+            left: 0; width: 100%; height: 50px;
+            background: rgba(255, 255, 0, 0.2);
+            border-top: 2px solid rgba(255, 221, 0, 0.5);
+            border-bottom: 2px solid rgba(255, 221, 0, 0.5);
+            pointer-events: none;
+            display: none;
+            z-index: 10000;
+        }
+
+        /* --- UNIFIED NAVBAR --- */
+        .navbar {
+            background-color: #ffffff !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1rem 2rem;
+        }
+        
+        .navbar-brand {
+            font-size: 28px;
+            color: var(--navy) !important;
+            font-weight: bold;
+        }
+
+        #userMenu {
+            background-color: #f8fafc;
+            border: 1px solid #dee2e6 !important;
+            border-radius: 50rem !important;
+            padding: 0.5rem 1.25rem !important;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            background: #fff;
+        }
+
+        .upload-container {
+            border: 2px dashed #cbd5e1;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-container:hover { border-color: var(--navy); background: #f1f5f9; }
+
+        /* --- OUTPUT AREA --- */
+        .output-frame {
+            background: #fff;
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            min-height: 450px;
+            margin-top: 20px;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        /* --- VOICE CONTROLS --- */
+        .btn-group-custom .btn { margin: 5px; border-radius: 10px; font-weight: bold; padding: 10px 15px; width: 60px; }
+        .btn-play { background: #22c55e; color: white; border: none; }
+        .btn-pause { background: #eab308; color: white; border: none; }
+        .btn-stop { background: #ef4444; color: white; border: none; }
+
+        .hidden { display: none; }
+        
+        #screen-tint {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 9998; transition: background 0.5s;
+        }
+
+        .bionic b { font-weight: 900; color: #000; }
+
+        footer {
+            background-color: #ffffff;
+            border-top: 1px solid #dee2e6;
+            padding: 2rem 0;
+            text-align: center;
+            margin-top: 3rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div id="screen-tint"></div>
+<div id="readingRuler"></div>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="index.html">
+            <span class="me-2">◈</span> LexiNote
+        </a>
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#lexiNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="lexiNav">
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item"><a class="nav-link fw-bold" href="index.html">Home</a></li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle fw-bold" href="#" role="button" data-bs-toggle="dropdown">Tools</a>
+                    <ul class="dropdown-menu border-0 shadow-lg mt-2">
+                        <li><a class="dropdown-item p-3 fw-bold" href="notes_convertor.html">📝 Notes Converter</a></li>
+                        <li><a class="dropdown-item p-3 fw-bold" href="reversed_letters.html">🔍 Identify Errors</a></li>
+                        <li><a class="dropdown-item p-3 fw-bold" href="writing_practice.html">✍️ Writing Practice</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item ms-lg-3">
+                    <a class="nav-link border" href="#" id="userMenu">👤 Hi, User</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card p-4">
+                <h2 class="mb-3" style="color: var(--navy);">Identify Writing Errors</h2>
+                <p class="text-muted">Upload handwritten notes to detect letter reversals and spelling patterns.</p>
+                
+                <div class="upload-container" id="dropZone" onclick="document.getElementById('imageInput').click()">
+                    <input type="file" id="imageInput" accept="image/*" hidden />
+                    <div class="fs-1 mb-2">🖼️</div>
+                    <p class="fs-5 mb-1 fw-bold">Click or Drop Handwritten Image</p>
+                    <p class="text-muted small">Max file size: 5MB (JPG, PNG)</p>
+                </div>
+                
+                <button class="btn w-100 mt-4 py-2 fw-bold shadow-sm" style="background-color: var(--navy); color: white;" onclick="simulateAI()">
+                    ▶ Start AI Analysis
+                </button>
+            </div>
+
+            <div class="output-frame shadow-sm" id="outputArea">
+                <h5 class="mb-3" style="color: var(--navy);">Corrected Text & Analysis</h5>
+                <hr>
+                <div id="outputPlaceholder" class="text-center py-5 text-muted">
+                    <p>Scan an image to see results here...</p>
+                </div>
+                <div id="aiTextContainer" class="w-100 text-start" style="font-size: 1.3rem;"></div>
+                
+                <div id="resultActions" class="mt-4 hidden">
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary flex-grow-1 fw-bold" onclick="applyBionicReading()">🧠 Bionic Mode</button>
+                        <button class="btn btn-outline-secondary flex-grow-1 fw-bold" onclick="window.print()">📥 Save Report</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card p-4 mb-4">
+                <h4 style="color: var(--navy);">🎨 Style Customizer</h4>
+                <hr>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Screen Tint</label>
+                    <select id="tintSelect" class="form-select" onchange="changeTint()">
+                        <option value="transparent">Default (None)</option>
+                        <option value="rgba(255, 230, 204, 0.3)">Peach / Orange</option>
+                        <option value="rgba(204, 229, 255, 0.3)">Soft Blue</option>
+                        <option value="rgba(204, 255, 204, 0.3)">Mint Green</option>
+                        <option value="rgba(255, 255, 204, 0.3)">Yellow Overlay</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Letter Spacing</label>
+                    <input type="range" class="form-range" id="letterSpace" min="0" max="10" value="1" oninput="updateSpacing()">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Word Spacing</label>
+                    <input type="range" class="form-range" id="wordSpace" min="2" max="20" value="3" oninput="updateSpacing()">
+                </div>
+                
+                <div class="bg-light p-3 rounded-3 mt-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="rulerToggle" onchange="toggleRuler()">
+                        <label class="form-check-label ms-2 fw-bold" for="rulerToggle">Reading Ruler</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-4">
+                <h4 style="color: var(--navy);">🔊 Voice Settings</h4>
+                <hr>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Reading Speed</label>
+                    <input type="range" class="form-range" id="voiceRate" min="0.5" max="2" step="0.1" value="1">
+                </div>
+                <div class="btn-group-custom text-center mt-2">
+                    <button onclick="speakText()" class="btn btn-play" title="Start">▶</button>
+                    <button onclick="pauseSpeech()" class="btn btn-pause" title="Pause">⏸</button>
+                    <button onclick="stopSpeech()" class="btn btn-stop" title="Stop">⏹</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <p class="mb-0 text-muted">© 2026 LexiNote | Designed for Open Accessibility</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="script/reversed_letters.js"></script>
+
+</body>
+</html>
