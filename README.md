@@ -32,31 +32,6 @@ Readers with dyslexia often experience:
 LexiNote addresses these challenges by restructuring text presentation to improve clarity and readability.
 
 ## Tech Stack
-- Java / Python (update as applicable)
-- HTML, CSS, JavaScript (if frontend is implemented)
+-  Python (update as applicable)
+- HTML, CSS, JavaScript 
 
-## Project Structure
-
-```
-LexiNote/
-│
-├── src/
-│   ├── com/finance/tracker/
-│   │   ├── AuthManager.java
-│   │   ├── FinanceManager.java
-│   │   ├── Main.java
-│   │   ├── Transaction.java
-│   │   ├── User.java
-│   │   │
-│   │   └── db/
-│   │       └── DBManager.java
-│   │
-│   └── module-info.java
-│
-├── frontend/
-│   ├── index.html
-│   ├── style.css
-│   ├── script.js
-│
-└── README.md
-```
