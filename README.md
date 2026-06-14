@@ -32,6 +32,7 @@ Readers with dyslexia often experience:
 LexiNote addresses these challenges by restructuring text presentation to improve clarity and readability.
 
 ## Tech Stack
+-n8n for ai work flow
 -  Python (update as applicable)
 - HTML, CSS, JavaScript 
 
